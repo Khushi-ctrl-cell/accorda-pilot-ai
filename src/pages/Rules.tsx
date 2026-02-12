@@ -1,8 +1,8 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import SeverityBadge from "@/components/SeverityBadge";
 import StatusBadge from "@/components/StatusBadge";
-import { mockRules } from "@/data/mockData";
-import { Search, Code2 } from "lucide-react";
+import { useRules } from "@/hooks/useCompliance";
+import { Search, Code2, Loader2, Scale } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 
@@ -10,10 +10,12 @@ const Rules = () => {
   const [search, setSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
 
-  const filtered = mockRules.filter((r) => {
+  const { data: rules = [], isLoading } = useRules();
+
+  const filtered = rules.filter((r) => {
     const matchesSearch =
       r.description.toLowerCase().includes(search.toLowerCase()) ||
-      r.id.toLowerCase().includes(search.toLowerCase());
+      r.rule_code.toLowerCase().includes(search.toLowerCase());
     const matchesSeverity = severityFilter === "all" || r.severity === severityFilter;
     return matchesSearch && matchesSeverity;
   });
@@ -57,6 +59,23 @@ const Rules = () => {
           </div>
         </div>
 
+        {/* Loading */}
+        {isLoading && (
+          <div className="text-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+            <p className="text-sm text-muted-foreground mt-2">Loading rules...</p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && filtered.length === 0 && (
+          <div className="text-center py-16 text-muted-foreground">
+            <Scale className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p className="text-sm font-medium">No rules yet</p>
+            <p className="text-xs mt-1">Upload a policy to auto-extract rules with AI</p>
+          </div>
+        )}
+
         {/* Rules List */}
         <div className="space-y-3">
           {filtered.map((rule, i) => (
@@ -70,13 +89,19 @@ const Rules = () => {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono font-semibold text-primary">{rule.id}</span>
-                    <SeverityBadge severity={rule.severity} />
-                    <StatusBadge status={rule.status} />
+                    <span className="text-xs font-mono font-semibold text-primary">{rule.rule_code}</span>
+                    <SeverityBadge severity={rule.severity as any} />
+                    <StatusBadge status={rule.status as any} />
+                    {rule.ai_confidence != null && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                        AI {Math.round(rule.ai_confidence * 100)}%
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm font-medium text-foreground">{rule.description}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {rule.policyName} · {rule.section}
+                    {rule.policy_name} · {rule.section}
+                    {rule.target_table && <> · Target: <span className="font-mono">{rule.target_table}</span></>}
                   </p>
                 </div>
               </div>
@@ -89,7 +114,7 @@ const Rules = () => {
                     Rule Condition
                   </span>
                 </div>
-                <code className="text-xs font-mono text-foreground leading-relaxed">{rule.condition}</code>
+                <code className="text-xs font-mono text-foreground leading-relaxed">{rule.condition_text}</code>
               </div>
             </motion.div>
           ))}

@@ -1,1 +1,7 @@
 project_id = "ipkxucaltygkjtiweeoy"
+
+[functions.parse-policy]
+verify_jwt = false
+
+[functions.evaluate-rules]
+verify_jwt = false

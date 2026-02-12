@@ -14,7 +14,214 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      policies: {
+        Row: {
+          ai_confidence: number | null
+          created_at: string
+          file_size: string | null
+          file_url: string | null
+          id: string
+          name: string
+          raw_text: string | null
+          rules_extracted: number
+          sections: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          created_at?: string
+          file_size?: string | null
+          file_url?: string | null
+          id?: string
+          name: string
+          raw_text?: string | null
+          rules_extracted?: number
+          sections?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          created_at?: string
+          file_size?: string | null
+          file_url?: string | null
+          id?: string
+          name?: string
+          raw_text?: string | null
+          rules_extracted?: number
+          sections?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rules: {
+        Row: {
+          ai_confidence: number | null
+          condition_dsl: Json
+          condition_text: string
+          created_at: string
+          description: string
+          id: string
+          policy_id: string | null
+          policy_name: string
+          rule_code: string
+          section: string | null
+          severity: string
+          status: string
+          target_table: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          condition_dsl?: Json
+          condition_text: string
+          created_at?: string
+          description: string
+          id?: string
+          policy_id?: string | null
+          policy_name: string
+          rule_code: string
+          section?: string | null
+          severity?: string
+          status?: string
+          target_table?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          condition_dsl?: Json
+          condition_text?: string
+          created_at?: string
+          description?: string
+          id?: string
+          policy_id?: string | null
+          policy_name?: string
+          rule_code?: string
+          section?: string | null
+          severity?: string
+          status?: string
+          target_table?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rules_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scan_history: {
+        Row: {
+          completed_at: string | null
+          duration_ms: number | null
+          id: string
+          records_scanned: number | null
+          rules_evaluated: number | null
+          scan_type: string
+          started_at: string
+          status: string
+          violations_found: number | null
+          violations_resolved: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          duration_ms?: number | null
+          id?: string
+          records_scanned?: number | null
+          rules_evaluated?: number | null
+          scan_type?: string
+          started_at?: string
+          status?: string
+          violations_found?: number | null
+          violations_resolved?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          duration_ms?: number | null
+          id?: string
+          records_scanned?: number | null
+          rules_evaluated?: number | null
+          scan_type?: string
+          started_at?: string
+          status?: string
+          violations_found?: number | null
+          violations_resolved?: number | null
+        }
+        Relationships: []
+      }
+      violations: {
+        Row: {
+          condition_breakdown: Json | null
+          created_at: string
+          department: string | null
+          detected_at: string
+          explanation: string
+          id: string
+          policy_section: string | null
+          record_id: string
+          review_comment: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          risk_score: number | null
+          rule_code: string | null
+          rule_id: string | null
+          rule_name: string
+          severity: string
+          status: string
+        }
+        Insert: {
+          condition_breakdown?: Json | null
+          created_at?: string
+          department?: string | null
+          detected_at?: string
+          explanation: string
+          id?: string
+          policy_section?: string | null
+          record_id: string
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_score?: number | null
+          rule_code?: string | null
+          rule_id?: string | null
+          rule_name: string
+          severity?: string
+          status?: string
+        }
+        Update: {
+          condition_breakdown?: Json | null
+          created_at?: string
+          department?: string | null
+          detected_at?: string
+          explanation?: string
+          id?: string
+          policy_section?: string | null
+          record_id?: string
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_score?: number | null
+          rule_code?: string | null
+          rule_id?: string | null
+          rule_name?: string
+          severity?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "violations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -3,33 +3,44 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import { OrgProvider } from "@/hooks/useOrg";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Policies from "./pages/Policies";
 import Rules from "./pages/Rules";
 import Violations from "./pages/Violations";
 import Review from "./pages/Review";
 import Settings from "./pages/Settings";
+import Auth from "./pages/Auth";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/policies" element={<Policies />} />
-          <Route path="/rules" element={<Rules />} />
-          <Route path="/violations" element={<Violations />} />
-          <Route path="/review" element={<Review />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <OrgProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/policies" element={<ProtectedRoute><Policies /></ProtectedRoute>} />
+              <Route path="/rules" element={<ProtectedRoute><Rules /></ProtectedRoute>} />
+              <Route path="/violations" element={<ProtectedRoute><Violations /></ProtectedRoute>} />
+              <Route path="/review" element={<ProtectedRoute><Review /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </OrgProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

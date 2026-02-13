@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
@@ -7,7 +7,11 @@ import {
   ClipboardCheck,
   Settings,
   Shield,
+  LogOut,
+  User,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useOrg } from "@/hooks/useOrg";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -18,6 +22,18 @@ const navItems = [
 ];
 
 const AppSidebar = () => {
+  const { user, signOut } = useAuth();
+  const { org, roles } = useOrg();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split("@")[0] || "User";
+  const roleLabel = roles.length > 0 ? roles[0].replace("_", " ") : "member";
+
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-sidebar border-r border-sidebar-border">
       {/* Logo */}
@@ -27,7 +43,9 @@ const AppSidebar = () => {
         </div>
         <div>
           <h1 className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">ComplianceAI</h1>
-          <p className="text-[10px] text-sidebar-muted uppercase tracking-widest">Automation Platform</p>
+          <p className="text-[10px] text-sidebar-muted uppercase tracking-widest truncate max-w-[140px]">
+            {org?.name || "Platform"}
+          </p>
         </div>
       </div>
 
@@ -53,7 +71,7 @@ const AppSidebar = () => {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-sidebar-border p-4">
+      <div className="border-t border-sidebar-border p-4 space-y-3">
         <NavLink
           to="/settings"
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
@@ -61,14 +79,23 @@ const AppSidebar = () => {
           <Settings className="h-4 w-4" />
           Settings
         </NavLink>
-        <div className="mt-3 px-3">
-          <div className="flex items-center justify-between text-xs text-sidebar-muted">
-            <span>Last scan</span>
-            <span className="text-sidebar-accent-foreground">2 min ago</span>
+
+        {/* User info */}
+        <div className="flex items-center gap-3 px-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent">
+            <User className="h-4 w-4 text-sidebar-foreground" />
           </div>
-          <div className="mt-1.5 h-1 rounded-full bg-sidebar-accent overflow-hidden">
-            <div className="h-full w-3/4 rounded-full gradient-success" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-sidebar-accent-foreground truncate">{displayName}</p>
+            <p className="text-[10px] text-sidebar-muted capitalize">{roleLabel}</p>
           </div>
+          <button
+            onClick={handleSignOut}
+            className="text-sidebar-muted hover:text-sidebar-foreground transition-colors"
+            title="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </aside>

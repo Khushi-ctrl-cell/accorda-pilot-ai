@@ -64,7 +64,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { records, rule_ids, scan_type = "manual" } = await req.json();
+    const { records, rule_ids, scan_type = "manual", org_id } = await req.json();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -74,10 +74,12 @@ serve(async (req) => {
     const { data: scan } = await supabase.from("scan_history").insert({
       scan_type,
       status: "running",
+      org_id: org_id || null,
     }).select().single();
 
-    // Fetch active rules
+    // Fetch active rules (scoped to org)
     let rulesQuery = supabase.from("rules").select("*").eq("status", "active");
+    if (org_id) rulesQuery = rulesQuery.eq("org_id", org_id);
     if (rule_ids?.length) {
       rulesQuery = rulesQuery.in("id", rule_ids);
     }
@@ -116,6 +118,7 @@ serve(async (req) => {
             status: "pending",
             department: record.department || "Unknown",
             risk_score: riskScore,
+            org_id: org_id || null,
           }).select().single();
 
           if (vError) {

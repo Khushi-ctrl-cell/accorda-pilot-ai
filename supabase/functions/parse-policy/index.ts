@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { policy_id, policy_text, policy_name } = await req.json();
+    const { policy_id, policy_text, policy_name, org_id } = await req.json();
 
     if (!policy_text || !policy_name) {
       return new Response(JSON.stringify({ error: "policy_text and policy_name are required" }), {
@@ -114,6 +114,7 @@ Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
         severity: rule.severity || "medium",
         status: "active",
         ai_confidence: rule.confidence || 0.7,
+        org_id: org_id || null,
       }).select().single();
 
       if (error) {

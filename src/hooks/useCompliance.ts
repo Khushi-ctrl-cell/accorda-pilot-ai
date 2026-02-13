@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/hooks/useOrg";
 import { toast } from "sonner";
 
 // Types matching DB schema
@@ -13,6 +14,7 @@ export interface DbPolicy {
   sections: number;
   rules_extracted: number;
   ai_confidence: number | null;
+  org_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -30,6 +32,7 @@ export interface DbRule {
   severity: string;
   status: string;
   ai_confidence: number | null;
+  org_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -50,6 +53,7 @@ export interface DbViolation {
   reviewed_by: string | null;
   reviewed_at: string | null;
   review_comment: string | null;
+  org_id: string | null;
   detected_at: string;
   created_at: string;
 }
@@ -63,71 +67,90 @@ export interface DbScanHistory {
   rules_evaluated: number | null;
   records_scanned: number | null;
   duration_ms: number | null;
+  org_id: string | null;
   started_at: string;
   completed_at: string | null;
 }
 
 export function usePolicies() {
+  const { orgId } = useOrg();
   return useQuery({
-    queryKey: ["policies"],
+    queryKey: ["policies", orgId],
     queryFn: async () => {
+      if (!orgId) return [];
       const { data, error } = await supabase
         .from("policies")
         .select("*")
+        .eq("org_id", orgId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as DbPolicy[];
     },
+    enabled: !!orgId,
   });
 }
 
 export function useRules() {
+  const { orgId } = useOrg();
   return useQuery({
-    queryKey: ["rules"],
+    queryKey: ["rules", orgId],
     queryFn: async () => {
+      if (!orgId) return [];
       const { data, error } = await supabase
         .from("rules")
         .select("*")
+        .eq("org_id", orgId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as DbRule[];
     },
+    enabled: !!orgId,
   });
 }
 
 export function useViolations() {
+  const { orgId } = useOrg();
   return useQuery({
-    queryKey: ["violations"],
+    queryKey: ["violations", orgId],
     queryFn: async () => {
+      if (!orgId) return [];
       const { data, error } = await supabase
         .from("violations")
         .select("*")
+        .eq("org_id", orgId)
         .order("detected_at", { ascending: false });
       if (error) throw error;
       return data as DbViolation[];
     },
+    enabled: !!orgId,
   });
 }
 
 export function useScanHistory() {
+  const { orgId } = useOrg();
   return useQuery({
-    queryKey: ["scan_history"],
+    queryKey: ["scan_history", orgId],
     queryFn: async () => {
+      if (!orgId) return [];
       const { data, error } = await supabase
         .from("scan_history")
         .select("*")
+        .eq("org_id", orgId)
         .order("started_at", { ascending: false })
         .limit(20);
       if (error) throw error;
       return data as DbScanHistory[];
     },
+    enabled: !!orgId,
   });
 }
 
 export function useCreatePolicy() {
   const queryClient = useQueryClient();
+  const { orgId } = useOrg();
   return useMutation({
     mutationFn: async (policy: { name: string; raw_text: string; file_size?: string }) => {
+      if (!orgId) throw new Error("No organization selected");
       const { data, error } = await supabase
         .from("policies")
         .insert({
@@ -135,6 +158,7 @@ export function useCreatePolicy() {
           raw_text: policy.raw_text,
           file_size: policy.file_size || "N/A",
           status: "processing",
+          org_id: orgId,
         })
         .select()
         .single();
@@ -147,10 +171,11 @@ export function useCreatePolicy() {
 
 export function useParsePolicy() {
   const queryClient = useQueryClient();
+  const { orgId } = useOrg();
   return useMutation({
     mutationFn: async (args: { policy_id: string; policy_text: string; policy_name: string }) => {
       const { data, error } = await supabase.functions.invoke("parse-policy", {
-        body: args,
+        body: { ...args, org_id: orgId },
       });
       if (error) throw error;
       return data;
@@ -164,10 +189,11 @@ export function useParsePolicy() {
 
 export function useEvaluateRules() {
   const queryClient = useQueryClient();
+  const { orgId } = useOrg();
   return useMutation({
     mutationFn: async (args: { records: any[]; rule_ids?: string[]; scan_type?: string }) => {
       const { data, error } = await supabase.functions.invoke("evaluate-rules", {
-        body: args,
+        body: { ...args, org_id: orgId },
       });
       if (error) throw error;
       return data;
@@ -202,13 +228,15 @@ export function useUpdateViolation() {
 }
 
 export function useDashboardStats() {
+  const { orgId } = useOrg();
   return useQuery({
-    queryKey: ["dashboard-stats"],
+    queryKey: ["dashboard-stats", orgId],
     queryFn: async () => {
+      if (!orgId) return null;
       const [policiesRes, rulesRes, violationsRes] = await Promise.all([
-        supabase.from("policies").select("*", { count: "exact" }),
-        supabase.from("rules").select("*", { count: "exact" }),
-        supabase.from("violations").select("*"),
+        supabase.from("policies").select("*", { count: "exact" }).eq("org_id", orgId),
+        supabase.from("rules").select("*", { count: "exact" }).eq("org_id", orgId),
+        supabase.from("violations").select("*").eq("org_id", orgId),
       ]);
 
       const policies = policiesRes.data || [];
@@ -221,7 +249,6 @@ export function useDashboardStats() {
 
       const complianceScore = Math.round(((totalViolations - activeViolations) / totalViolations) * 100);
 
-      // Department scores
       const deptMap = new Map<string, { total: number; resolved: number }>();
       for (const v of violations) {
         const dept = v.department || "Unknown";
@@ -232,17 +259,16 @@ export function useDashboardStats() {
       }
       const departmentScores = Array.from(deptMap.entries()).map(([dept, data]) => ({
         department: dept,
-        score: data.total > 0 ? Math.round(((data.total - (data.total - data.resolved)) / data.total) * 100) : 100,
+        score: data.total > 0 ? Math.round((data.resolved / data.total) * 100) : 100,
       })).sort((a, b) => a.score - b.score);
 
-      // Severity breakdown
       const sevMap = new Map<string, number>();
       for (const v of violations) {
         sevMap.set(v.severity, (sevMap.get(v.severity) || 0) + 1);
       }
       const severityBreakdown = Array.from(sevMap.entries()).map(([severity, count]) => ({ severity, count }));
 
-      const lastScan = await supabase.from("scan_history").select("*").order("started_at", { ascending: false }).limit(1);
+      const lastScan = await supabase.from("scan_history").select("*").eq("org_id", orgId).order("started_at", { ascending: false }).limit(1);
       const lastScanAt = lastScan.data?.[0]?.started_at || new Date().toISOString();
 
       return {
@@ -257,5 +283,6 @@ export function useDashboardStats() {
         trendData: [] as { date: string; violations: number; resolved: number }[],
       };
     },
+    enabled: !!orgId,
   });
 }

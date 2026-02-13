@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      organization_members: {
+        Row: {
+          id: string
+          joined_at: string
+          org_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          org_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          org_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       policies: {
         Row: {
           ai_confidence: number | null
@@ -22,6 +78,7 @@ export type Database = {
           file_url: string | null
           id: string
           name: string
+          org_id: string | null
           raw_text: string | null
           rules_extracted: number
           sections: number
@@ -35,6 +92,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           name: string
+          org_id?: string | null
           raw_text?: string | null
           rules_extracted?: number
           sections?: number
@@ -48,11 +106,50 @@ export type Database = {
           file_url?: string | null
           id?: string
           name?: string
+          org_id?: string | null
           raw_text?: string | null
           rules_extracted?: number
           sections?: number
           status?: string
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policies_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -64,6 +161,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          org_id: string | null
           policy_id: string | null
           policy_name: string
           rule_code: string
@@ -80,6 +178,7 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          org_id?: string | null
           policy_id?: string | null
           policy_name: string
           rule_code: string
@@ -96,6 +195,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          org_id?: string | null
           policy_id?: string | null
           policy_name?: string
           rule_code?: string
@@ -106,6 +206,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rules_policy_id_fkey"
             columns: ["policy_id"]
@@ -120,6 +227,7 @@ export type Database = {
           completed_at: string | null
           duration_ms: number | null
           id: string
+          org_id: string | null
           records_scanned: number | null
           rules_evaluated: number | null
           scan_type: string
@@ -132,6 +240,7 @@ export type Database = {
           completed_at?: string | null
           duration_ms?: number | null
           id?: string
+          org_id?: string | null
           records_scanned?: number | null
           rules_evaluated?: number | null
           scan_type?: string
@@ -144,6 +253,7 @@ export type Database = {
           completed_at?: string | null
           duration_ms?: number | null
           id?: string
+          org_id?: string | null
           records_scanned?: number | null
           rules_evaluated?: number | null
           scan_type?: string
@@ -152,7 +262,44 @@ export type Database = {
           violations_found?: number | null
           violations_resolved?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "scan_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          org_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       violations: {
         Row: {
@@ -162,6 +309,7 @@ export type Database = {
           detected_at: string
           explanation: string
           id: string
+          org_id: string | null
           policy_section: string | null
           record_id: string
           review_comment: string | null
@@ -181,6 +329,7 @@ export type Database = {
           detected_at?: string
           explanation: string
           id?: string
+          org_id?: string | null
           policy_section?: string | null
           record_id: string
           review_comment?: string | null
@@ -200,6 +349,7 @@ export type Database = {
           detected_at?: string
           explanation?: string
           id?: string
+          org_id?: string | null
           policy_section?: string | null
           record_id?: string
           review_comment?: string | null
@@ -214,6 +364,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "violations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "violations_rule_id_fkey"
             columns: ["rule_id"]
             isOneToOne: false
@@ -227,10 +384,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "compliance_officer" | "reviewer" | "auditor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -357,6 +521,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "compliance_officer", "reviewer", "auditor"],
+    },
   },
 } as const

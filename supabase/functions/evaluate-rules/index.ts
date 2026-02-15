@@ -6,6 +6,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// In-memory rate limiter
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW = 60000;
+const MAX_REQUESTS = 30;
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+  if (entry && entry.resetAt > now) {
+    if (entry.count >= MAX_REQUESTS) return false;
+    entry.count++;
+  } else {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+  }
+  return true;
+}
+
+function isValidUUID(s: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+}
+
 interface ConditionDSL {
   field?: string;
   operator?: string;
@@ -15,7 +36,6 @@ interface ConditionDSL {
 }
 
 function evaluateCondition(condition: ConditionDSL, record: Record<string, any>): { passed: boolean; details: string } {
-  // Compound condition
   if (condition.conditions && condition.conditions.length > 0) {
     const results = condition.conditions.map((c) => evaluateCondition(c, record));
     const passed = condition.logic === "OR"
@@ -27,7 +47,6 @@ function evaluateCondition(condition: ConditionDSL, record: Record<string, any>)
     };
   }
 
-  // Simple condition
   const { field, operator, value } = condition;
   if (!field || !operator) return { passed: true, details: "No condition defined" };
 
@@ -45,8 +64,6 @@ function evaluateCondition(condition: ConditionDSL, record: Record<string, any>)
     default: passed = true;
   }
 
-  // For violation rules, the condition describes the VIOLATION state
-  // So if condition matches, it's a violation (passed = true means violation found)
   return {
     passed,
     details: `${field} ${operator} ${value}: actual=${recordValue} → ${passed ? "VIOLATION" : "COMPLIANT"}`,
@@ -84,39 +101,70 @@ serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
+    const userId = claimsData.claims.sub as string;
 
-    const { records, rule_ids, scan_type = "manual", org_id } = await req.json();
+    // Rate limiting
+    if (!checkRateLimit(userId)) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = await req.json();
+
+    // Input validation
+    const records = body.records;
+    const rule_ids = body.rule_ids;
+    const scan_type = body.scan_type || "manual";
+    const org_id = body.org_id;
+
+    if (!org_id || typeof org_id !== "string" || !isValidUUID(org_id)) {
+      return new Response(JSON.stringify({ error: "org_id is required and must be a valid UUID" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (records && (!Array.isArray(records) || records.length > 10000)) {
+      return new Response(JSON.stringify({ error: "records must be an array with at most 10,000 items" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (rule_ids && (!Array.isArray(rule_ids) || !rule_ids.every((id: any) => typeof id === "string" && isValidUUID(id)))) {
+      return new Response(JSON.stringify({ error: "rule_ids must be an array of valid UUIDs" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (typeof scan_type !== "string" || !["manual", "scheduled", "automated"].includes(scan_type)) {
+      return new Response(JSON.stringify({ error: "scan_type must be 'manual', 'scheduled', or 'automated'" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Verify user has access to the org
-    if (org_id) {
-      const { data: membership } = await supabase
-        .from("organization_members")
-        .select("org_id")
-        .eq("user_id", userId)
-        .eq("org_id", org_id)
-        .single();
-      if (!membership) {
-        return new Response(JSON.stringify({ error: "Access denied to this organization" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const { data: membership } = await supabase
+      .from("organization_members")
+      .select("org_id")
+      .eq("user_id", userId)
+      .eq("org_id", org_id)
+      .single();
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "Access denied to this organization" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Create scan record
     const { data: scan } = await supabase.from("scan_history").insert({
       scan_type,
       status: "running",
-      org_id: org_id || null,
+      org_id: org_id,
     }).select().single();
 
     // Fetch active rules (scoped to org)
-    let rulesQuery = supabase.from("rules").select("*").eq("status", "active");
-    if (org_id) rulesQuery = rulesQuery.eq("org_id", org_id);
+    let rulesQuery = supabase.from("rules").select("*").eq("status", "active").eq("org_id", org_id);
     if (rule_ids?.length) {
       rulesQuery = rulesQuery.in("id", rule_ids);
     }
@@ -130,13 +178,11 @@ serve(async (req) => {
       const conditionDsl = rule.condition_dsl as ConditionDSL;
 
       for (const record of recordsToEval) {
-        // Only evaluate if the record's table matches the rule's target
         if (rule.target_table && record._table && record._table !== rule.target_table) continue;
 
         const result = evaluateCondition(conditionDsl, record);
 
         if (result.passed) {
-          // Violation detected
           const riskScore = calculateRiskScore(rule.severity, [result]);
 
           const { data: violation, error: vError } = await supabase.from("violations").insert({
@@ -155,7 +201,7 @@ serve(async (req) => {
             status: "pending",
             department: record.department || "Unknown",
             risk_score: riskScore,
-            org_id: org_id || null,
+            org_id: org_id,
           }).select().single();
 
           if (vError) {
@@ -167,7 +213,6 @@ serve(async (req) => {
       }
     }
 
-    // Update scan record
     if (scan) {
       await supabase.from("scan_history").update({
         status: "completed",
@@ -190,7 +235,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("evaluate-rules error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An error occurred while processing your request. Please try again later." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

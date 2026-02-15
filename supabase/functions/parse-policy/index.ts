@@ -6,6 +6,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// In-memory rate limiter (resets on cold start)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_REQUESTS = 10;
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+  if (entry && entry.resetAt > now) {
+    if (entry.count >= MAX_REQUESTS) return false;
+    entry.count++;
+  } else {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+  }
+  return true;
+}
+
+function isValidUUID(s: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -30,14 +51,41 @@ serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
+    const userId = claimsData.claims.sub as string;
 
-    const { policy_id, policy_text, policy_name, org_id } = await req.json();
+    // Rate limiting
+    if (!checkRateLimit(userId)) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    if (!policy_text || !policy_name) {
-      return new Response(JSON.stringify({ error: "policy_text and policy_name are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const body = await req.json();
+
+    // Input validation
+    const policy_id = body.policy_id;
+    const policy_text = body.policy_text;
+    const policy_name = body.policy_name;
+    const org_id = body.org_id;
+
+    if (typeof policy_text !== "string" || policy_text.trim().length === 0 || policy_text.length > 1_000_000) {
+      return new Response(JSON.stringify({ error: "policy_text is required and must be under 1MB" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (typeof policy_name !== "string" || policy_name.trim().length === 0 || policy_name.length > 500) {
+      return new Response(JSON.stringify({ error: "policy_name is required and must be under 500 characters" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (policy_id && (typeof policy_id !== "string" || !isValidUUID(policy_id))) {
+      return new Response(JSON.stringify({ error: "policy_id must be a valid UUID" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!org_id || typeof org_id !== "string" || !isValidUUID(org_id)) {
+      return new Response(JSON.stringify({ error: "org_id is required and must be a valid UUID" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -46,18 +94,16 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Verify user has access to the org
-    if (org_id) {
-      const { data: membership } = await supabase
-        .from("organization_members")
-        .select("org_id")
-        .eq("user_id", userId)
-        .eq("org_id", org_id)
-        .single();
-      if (!membership) {
-        return new Response(JSON.stringify({ error: "Access denied to this organization" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const { data: membership } = await supabase
+      .from("organization_members")
+      .select("org_id")
+      .eq("user_id", userId)
+      .eq("org_id", org_id)
+      .single();
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "Access denied to this organization" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -110,13 +156,12 @@ Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      throw new Error(`AI gateway error: ${response.status}`);
+      throw new Error("AI processing failed");
     }
 
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content || "[]";
 
-    // Parse the AI response - handle potential markdown wrapping
     let rules;
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
@@ -128,15 +173,12 @@ Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
 
     if (!Array.isArray(rules)) rules = [rules];
 
-    // Calculate average confidence
     const avgConfidence = rules.length > 0
       ? rules.reduce((sum: number, r: any) => sum + (r.confidence || 0.7), 0) / rules.length
       : 0;
 
-    // Count unique sections
     const sections = new Set(rules.map((r: any) => r.section)).size;
 
-    // Store rules in database
     const insertedRules = [];
     for (const rule of rules) {
       const { data, error } = await supabase.from("rules").insert({
@@ -151,7 +193,7 @@ Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
         severity: rule.severity || "medium",
         status: "active",
         ai_confidence: rule.confidence || 0.7,
-        org_id: org_id || null,
+        org_id: org_id,
       }).select().single();
 
       if (error) {
@@ -161,7 +203,6 @@ Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
       }
     }
 
-    // Update policy status
     if (policy_id) {
       await supabase.from("policies").update({
         status: "processed",
@@ -181,7 +222,7 @@ Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
     });
   } catch (e) {
     console.error("parse-policy error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An error occurred while processing your request. Please try again later." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

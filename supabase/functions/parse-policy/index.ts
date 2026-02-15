@@ -8,7 +8,7 @@ const corsHeaders = {
 
 // In-memory rate limiter (resets on cold start)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_WINDOW = 60000;
 const MAX_REQUESTS = 10;
 
 function checkRateLimit(userId: string): boolean {
@@ -25,6 +25,67 @@ function checkRateLimit(userId: string): boolean {
 
 function isValidUUID(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+}
+
+// Retry helper with exponential backoff
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<Response> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      // Don't retry on client errors (4xx) except 429
+      if (response.ok || (response.status >= 400 && response.status < 500 && response.status !== 429)) {
+        return response;
+      }
+      // Retry on 429 and 5xx
+      if (attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      return response;
+    } catch (err) {
+      lastError = err as Error;
+      if (attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastError || new Error("Request failed after retries");
+}
+
+async function logError(
+  supabase: any,
+  orgId: string,
+  functionName: string,
+  errorMessage: string,
+  errorDetails: any = null,
+  requestPayload: any = null,
+  retryCount = 0
+) {
+  try {
+    await supabase.from("error_log").insert({
+      org_id: orgId,
+      function_name: functionName,
+      error_message: errorMessage,
+      error_details: errorDetails,
+      request_payload: requestPayload ? { policy_name: requestPayload.policy_name, policy_id: requestPayload.policy_id } : null,
+      retry_count: retryCount,
+      status: "failed",
+    });
+  } catch (e) {
+    console.error("Failed to log error:", e);
+  }
 }
 
 serve(async (req) => {
@@ -61,8 +122,6 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-
-    // Input validation
     const policy_id = body.policy_id;
     const policy_text = body.policy_text;
     const policy_name = body.policy_name;
@@ -128,20 +187,28 @@ For each rule you extract, return a JSON object with these fields:
 
 Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Extract compliance rules from this policy document titled "${policy_name}":\n\n${policy_text}` },
-        ],
-      }),
-    });
+    let response: Response;
+    let retryCount = 0;
+    try {
+      response = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Extract compliance rules from this policy document titled "${policy_name}":\n\n${policy_text}` },
+          ],
+        }),
+      }, 3, 1000);
+    } catch (err) {
+      retryCount = 3;
+      await logError(supabase, org_id, "parse-policy", (err as Error).message, { stack: String(err) }, body, retryCount);
+      throw err;
+    }
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -156,6 +223,7 @@ Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
+      await logError(supabase, org_id, "parse-policy", `AI gateway error: ${response.status}`, { response_body: t }, body);
       throw new Error("AI processing failed");
     }
 
@@ -211,6 +279,17 @@ Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
         ai_confidence: avgConfidence,
       }).eq("id", policy_id);
     }
+
+    // Audit log: policy parsed
+    await supabase.from("audit_log").insert({
+      org_id,
+      user_id: userId,
+      action: "policy.parsed",
+      entity_type: "policy",
+      entity_id: policy_id || null,
+      after_value: { rules_count: insertedRules.length, sections, confidence: avgConfidence },
+      metadata: { policy_name },
+    }).then(() => {}).catch(() => {});
 
     return new Response(JSON.stringify({
       rules: insertedRules,

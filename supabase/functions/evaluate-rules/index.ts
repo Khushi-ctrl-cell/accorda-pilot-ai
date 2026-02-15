@@ -77,6 +77,30 @@ function calculateRiskScore(severity: string, conditionResults: { passed: boolea
   return Math.min(100, Math.round(base + failedRatio * 10));
 }
 
+async function logError(
+  supabase: any,
+  orgId: string,
+  functionName: string,
+  errorMessage: string,
+  errorDetails: any = null,
+  requestPayload: any = null,
+  retryCount = 0
+) {
+  try {
+    await supabase.from("error_log").insert({
+      org_id: orgId,
+      function_name: functionName,
+      error_message: errorMessage,
+      error_details: errorDetails,
+      request_payload: requestPayload ? { scan_type: requestPayload.scan_type, record_count: requestPayload.records?.length } : null,
+      retry_count: retryCount,
+      status: "failed",
+    });
+  } catch (e) {
+    console.error("Failed to log error:", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -111,8 +135,6 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-
-    // Input validation
     const records = body.records;
     const rule_ids = body.rule_ids;
     const scan_type = body.scan_type || "manual";
@@ -169,7 +191,10 @@ serve(async (req) => {
       rulesQuery = rulesQuery.in("id", rule_ids);
     }
     const { data: rules, error: rulesError } = await rulesQuery;
-    if (rulesError) throw new Error(`Failed to fetch rules: ${rulesError.message}`);
+    if (rulesError) {
+      await logError(supabase, org_id, "evaluate-rules", `Failed to fetch rules: ${rulesError.message}`, rulesError, body);
+      throw new Error(`Failed to fetch rules: ${rulesError.message}`);
+    }
 
     const violations: any[] = [];
     const recordsToEval = records || [];
@@ -223,6 +248,21 @@ serve(async (req) => {
         duration_ms: Date.now() - new Date(scan.started_at).getTime(),
       }).eq("id", scan.id);
     }
+
+    // Audit log: scan completed
+    await supabase.from("audit_log").insert({
+      org_id,
+      user_id: userId,
+      action: "scan.completed",
+      entity_type: "scan",
+      entity_id: scan?.id || null,
+      after_value: {
+        violations_found: violations.length,
+        rules_evaluated: rules?.length || 0,
+        records_scanned: recordsToEval.length,
+        scan_type,
+      },
+    }).then(() => {}).catch(() => {});
 
     return new Response(JSON.stringify({
       scan_id: scan?.id,

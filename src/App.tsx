@@ -12,6 +12,7 @@ import Rules from "./pages/Rules";
 import Violations from "./pages/Violations";
 import Review from "./pages/Review";
 import Settings from "./pages/Settings";
+import ActivityLog from "./pages/ActivityLog";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/violations" element={<ProtectedRoute><Violations /></ProtectedRoute>} />
               <Route path="/review" element={<ProtectedRoute><Review /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/activity" element={<ProtectedRoute><ActivityLog /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

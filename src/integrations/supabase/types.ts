@@ -14,6 +14,106 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          after_value: Json | null
+          before_value: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          org_id: string | null
+          user_email: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          after_value?: Json | null
+          before_value?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          org_id?: string | null
+          user_email?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          after_value?: Json | null
+          before_value?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          org_id?: string | null
+          user_email?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      error_log: {
+        Row: {
+          created_at: string
+          error_details: Json | null
+          error_message: string
+          function_name: string
+          id: string
+          max_retries: number
+          org_id: string | null
+          request_payload: Json | null
+          resolved_at: string | null
+          retry_count: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_details?: Json | null
+          error_message: string
+          function_name: string
+          id?: string
+          max_retries?: number
+          org_id?: string | null
+          request_payload?: Json | null
+          resolved_at?: string | null
+          retry_count?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error_details?: Json | null
+          error_message?: string
+          function_name?: string
+          id?: string
+          max_retries?: number
+          org_id?: string | null
+          request_payload?: Json | null
+          resolved_at?: string | null
+          retry_count?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "error_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           id: string

@@ -9,6 +9,7 @@ import {
   Shield,
   LogOut,
   User,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrg } from "@/hooks/useOrg";
@@ -19,6 +20,7 @@ const navItems = [
   { to: "/rules", icon: Scale, label: "Rules" },
   { to: "/violations", icon: AlertTriangle, label: "Violations" },
   { to: "/review", icon: ClipboardCheck, label: "Review" },
+  { to: "/activity", icon: Activity, label: "Activity Log" },
 ];
 
 const AppSidebar = () => {

@@ -30,25 +30,13 @@ const Onboarding = () => {
     try {
       const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-      // Create org
-      const { data: newOrg, error: orgErr } = await supabase
-        .from("organizations")
-        .insert({ name: orgName.trim(), slug })
-        .select()
-        .single();
-      if (orgErr) throw orgErr;
-
-      // Add user as member
-      const { error: memErr } = await supabase
-        .from("organization_members")
-        .insert({ org_id: newOrg.id, user_id: user.id });
-      if (memErr) throw memErr;
-
-      // Grant admin role
-      const { error: roleErr } = await supabase
-        .from("user_roles")
-        .insert({ org_id: newOrg.id, user_id: user.id, role: "admin" });
-      if (roleErr) throw roleErr;
+      // Use secure server-side function for atomic org creation
+      const { data: newOrgId, error: rpcErr } = await supabase
+        .rpc("create_organization_with_admin", {
+          _org_name: orgName.trim(),
+          _org_slug: slug,
+        });
+      if (rpcErr) throw rpcErr;
 
       toast.success("Organization created! You're now the admin.");
       // Force reload to pick up new org context

@@ -114,6 +114,53 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          message: string
+          org_id: string
+          read: boolean
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          message: string
+          org_id: string
+          read?: boolean
+          title: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          message?: string
+          org_id?: string
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           id: string
@@ -253,11 +300,73 @@ export type Database = {
         }
         Relationships: []
       }
+      rule_versions: {
+        Row: {
+          change_summary: string | null
+          condition_dsl: Json
+          condition_text: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          org_id: string | null
+          rule_id: string
+          severity: string
+          target_table: string | null
+          version_number: number
+        }
+        Insert: {
+          change_summary?: string | null
+          condition_dsl?: Json
+          condition_text: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          org_id?: string | null
+          rule_id: string
+          severity?: string
+          target_table?: string | null
+          version_number?: number
+        }
+        Update: {
+          change_summary?: string | null
+          condition_dsl?: Json
+          condition_text?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          org_id?: string | null
+          rule_id?: string
+          severity?: string
+          target_table?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_versions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_versions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rules: {
         Row: {
           ai_confidence: number | null
           condition_dsl: Json
           condition_text: string
+          control_family: string | null
+          control_id: string | null
           created_at: string
           description: string
           id: string
@@ -275,6 +384,8 @@ export type Database = {
           ai_confidence?: number | null
           condition_dsl?: Json
           condition_text: string
+          control_family?: string | null
+          control_id?: string | null
           created_at?: string
           description: string
           id?: string
@@ -292,6 +403,8 @@ export type Database = {
           ai_confidence?: number | null
           condition_dsl?: Json
           condition_text?: string
+          control_family?: string | null
+          control_id?: string | null
           created_at?: string
           description?: string
           id?: string
@@ -365,6 +478,97 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "scan_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scan_schedules: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          frequency: string
+          id: string
+          last_run_at: string | null
+          next_run_at: string | null
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          frequency?: string
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          frequency?: string
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_schedules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_metrics: {
+        Row: {
+          created_at: string
+          id: string
+          org_id: string
+          period_end: string
+          period_start: string
+          policies_count: number
+          rules_count: number
+          scans_count: number
+          storage_bytes: number
+          updated_at: string
+          violations_processed: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_id: string
+          period_end: string
+          period_start: string
+          policies_count?: number
+          rules_count?: number
+          scans_count?: number
+          storage_bytes?: number
+          updated_at?: string
+          violations_processed?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_id?: string
+          period_end?: string
+          period_start?: string
+          policies_count?: number
+          rules_count?: number
+          scans_count?: number
+          storage_bytes?: number
+          updated_at?: string
+          violations_processed?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_metrics_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"

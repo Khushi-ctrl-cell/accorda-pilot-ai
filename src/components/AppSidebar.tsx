@@ -10,9 +10,14 @@ import {
   LogOut,
   User,
   Activity,
+  ShieldCheck,
+  Download,
+  Sparkles,
+  Bell,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrg } from "@/hooks/useOrg";
+import { useUnreadCount } from "@/hooks/useNotifications";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -20,6 +25,9 @@ const navItems = [
   { to: "/rules", icon: Scale, label: "Rules" },
   { to: "/violations", icon: AlertTriangle, label: "Violations" },
   { to: "/review", icon: ClipboardCheck, label: "Review" },
+  { to: "/soc2", icon: ShieldCheck, label: "SOC 2 Controls" },
+  { to: "/copilot", icon: Sparkles, label: "AI Copilot" },
+  { to: "/export", icon: Download, label: "Data Export" },
   { to: "/activity", icon: Activity, label: "Activity Log" },
 ];
 
@@ -27,6 +35,7 @@ const AppSidebar = () => {
   const { user, signOut } = useAuth();
   const { org, roles } = useOrg();
   const navigate = useNavigate();
+  const { data: unreadCount = 0 } = useUnreadCount();
 
   const handleSignOut = async () => {
     await signOut();
@@ -52,7 +61,7 @@ const AppSidebar = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -91,6 +100,11 @@ const AppSidebar = () => {
             <p className="text-xs font-medium text-sidebar-accent-foreground truncate">{displayName}</p>
             <p className="text-[10px] text-sidebar-muted capitalize">{roleLabel}</p>
           </div>
+          {unreadCount > 0 && (
+            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
+              {unreadCount}
+            </span>
+          )}
           <button
             onClick={handleSignOut}
             className="text-sidebar-muted hover:text-sidebar-foreground transition-colors"

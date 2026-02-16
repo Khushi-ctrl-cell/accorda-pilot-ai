@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.evaluate-rules]
 verify_jwt = false
+
+[functions.scheduled-scan]
+verify_jwt = false

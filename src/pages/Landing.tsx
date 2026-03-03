@@ -213,9 +213,9 @@ const Landing = () => {
             <span>ComplianceAI © 2026</span>
           </div>
           <div className="flex gap-4">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-foreground transition-colors">Security</a>
+            <button onClick={() => navigate("/privacy")} className="hover:text-foreground transition-colors">Privacy Policy</button>
+            <button onClick={() => navigate("/terms")} className="hover:text-foreground transition-colors">Terms of Service</button>
+            <button onClick={() => navigate("/security")} className="hover:text-foreground transition-colors">Security</button>
           </div>
         </div>
       </footer>

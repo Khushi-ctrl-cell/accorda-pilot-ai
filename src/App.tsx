@@ -20,6 +20,9 @@ import Demo from "./pages/Demo";
 import SOC2Controls from "./pages/SOC2Controls";
 import DataExport from "./pages/DataExport";
 import AICopilot from "./pages/AICopilot";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import SecurityPage from "./pages/Security";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +52,10 @@ const App = () => (
               <Route path="/copilot" element={<ProtectedRoute><AICopilot /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/activity" element={<ProtectedRoute><ActivityLog /></ProtectedRoute>} />
+              {/* Public legal/info pages */}
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/security" element={<SecurityPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -12,8 +12,18 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate: only allow calls with service role key (from pg_cron or admin)
+    const authHeader = req.headers.get("Authorization");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    if (!authHeader || authHeader !== `Bearer ${serviceRoleKey}`) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Find all orgs with enabled scheduled scans that are due

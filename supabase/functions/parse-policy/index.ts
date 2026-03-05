@@ -6,19 +6,30 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// In-memory rate limiter (resets on cold start)
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW = 60000;
+// Database-backed rate limiter (persistent across cold starts)
+const RATE_LIMIT_WINDOW_MS = 60000;
 const MAX_REQUESTS = 10;
 
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(userId);
-  if (entry && entry.resetAt > now) {
-    if (entry.count >= MAX_REQUESTS) return false;
-    entry.count++;
+async function checkRateLimit(supabase: any, userId: string, functionName: string): Promise<boolean> {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS);
+
+  // Clean up expired entry and upsert
+  const { data } = await supabase
+    .from("rate_limits")
+    .select("request_count, window_start")
+    .eq("user_id", userId)
+    .eq("function_name", functionName)
+    .single();
+
+  if (data && new Date(data.window_start) > windowStart) {
+    if (data.request_count >= MAX_REQUESTS) return false;
+    await supabase.from("rate_limits")
+      .update({ request_count: data.request_count + 1 })
+      .eq("user_id", userId).eq("function_name", functionName);
   } else {
-    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    await supabase.from("rate_limits")
+      .upsert({ user_id: userId, function_name: functionName, request_count: 1, window_start: now.toISOString() }, { onConflict: "user_id,function_name" });
   }
   return true;
 }
@@ -114,8 +125,9 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    // Rate limiting
-    if (!checkRateLimit(userId)) {
+    // Rate limiting (database-backed)
+    const rateLimitClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (!(await checkRateLimit(rateLimitClient, userId, "parse-policy"))) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
         status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

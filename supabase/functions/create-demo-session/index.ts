@@ -52,10 +52,6 @@ serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-
     // Use a dedicated demo account managed server-side
     const demoEmail = Deno.env.get("DEMO_ACCOUNT_EMAIL");
     const demoPassword = Deno.env.get("DEMO_ACCOUNT_PASSWORD");

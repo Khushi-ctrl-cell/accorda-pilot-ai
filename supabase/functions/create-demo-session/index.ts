@@ -79,7 +79,6 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
         expires_in: data.session.expires_in,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

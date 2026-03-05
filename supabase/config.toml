@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.scheduled-scan]
 verify_jwt = false
+
+[functions.create-demo-session]
+verify_jwt = false

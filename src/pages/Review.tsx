@@ -29,16 +29,6 @@ const Review = () => {
         status: statusMap[action] || "reviewed",
       });
 
-      // Log to audit trail
-      logAudit.mutate({
-        action: `violation.${action}`,
-        entity_type: "violation",
-        entity_id: id,
-        before_value: { status: violation?.status },
-        after_value: { status: statusMap[action] },
-        metadata: { rule_name: violation?.rule_name, record_id: violation?.record_id },
-      });
-
       toast.success(`Violation marked as ${action}`);
     } catch (err: any) {
       toast.error(err.message || "Failed to update violation");

@@ -80,6 +80,17 @@ function evaluateCondition(condition: ConditionDSL, record: Record<string, any>)
   };
 }
 
+function collectConditionFields(condition: ConditionDSL): Set<string> {
+  const fields = new Set<string>();
+  if (condition.field) fields.add(condition.field);
+  if (condition.conditions) {
+    for (const c of condition.conditions) {
+      for (const f of collectConditionFields(c)) fields.add(f);
+    }
+  }
+  return fields;
+}
+
 function calculateRiskScore(severity: string, conditionResults: { passed: boolean }[]): number {
   const baseScores: Record<string, number> = { critical: 90, high: 75, medium: 55, low: 30 };
   const base = baseScores[severity] || 50;

@@ -137,8 +137,9 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    // Rate limiting
-    if (!checkRateLimit(userId)) {
+    // Rate limiting (database-backed)
+    const rateLimitClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (!(await checkRateLimit(rateLimitClient, userId, "evaluate-rules"))) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
         status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

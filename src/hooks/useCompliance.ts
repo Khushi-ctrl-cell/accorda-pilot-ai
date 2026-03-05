@@ -208,13 +208,11 @@ export function useEvaluateRules() {
 export function useUpdateViolation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { id: string; status: string; reviewed_by?: string; review_comment?: string }) => {
+    mutationFn: async (args: { id: string; status: string; review_comment?: string }) => {
       const { data, error } = await supabase
         .from("violations")
         .update({
           status: args.status,
-          reviewed_by: args.reviewed_by,
-          reviewed_at: new Date().toISOString(),
           review_comment: args.review_comment,
         })
         .eq("id", args.id)

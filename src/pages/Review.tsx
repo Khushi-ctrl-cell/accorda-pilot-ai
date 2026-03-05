@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import SeverityBadge from "@/components/SeverityBadge";
+import RemediationPanel from "@/components/RemediationPanel";
 import { useViolations, useUpdateViolation } from "@/hooks/useCompliance";
-
 
 import { CheckCircle, XCircle, ArrowUpCircle, MessageSquare, Loader2 } from "lucide-react";
 import { format } from "date-fns";

@@ -2,6 +2,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import SeverityBadge from "@/components/SeverityBadge";
 import { useViolations, useUpdateViolation } from "@/hooks/useCompliance";
 import { useLogAudit } from "@/hooks/useAuditLog";
+import { useAuth } from "@/hooks/useAuth";
 import { CheckCircle, XCircle, ArrowUpCircle, MessageSquare, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
@@ -11,6 +12,7 @@ const Review = () => {
   const { data: allViolations = [], isLoading } = useViolations();
   const updateViolation = useUpdateViolation();
   const logAudit = useLogAudit();
+  const { user } = useAuth();
 
   const pendingViolations = allViolations.filter((v) => v.status === "pending" || v.status === "escalated");
 
@@ -27,7 +29,7 @@ const Review = () => {
       await updateViolation.mutateAsync({
         id,
         status: statusMap[action] || "reviewed",
-        reviewed_by: "Compliance Officer",
+        reviewed_by: user?.email || user?.id || "unknown",
       });
 
       // Log to audit trail

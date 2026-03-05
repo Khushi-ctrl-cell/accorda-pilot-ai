@@ -14,6 +14,7 @@ import {
   Download,
   Sparkles,
   Bell,
+  Puzzle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrg } from "@/hooks/useOrg";

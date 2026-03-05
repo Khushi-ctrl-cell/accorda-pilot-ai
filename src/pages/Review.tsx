@@ -11,8 +11,6 @@ import { toast } from "sonner";
 const Review = () => {
   const { data: allViolations = [], isLoading } = useViolations();
   const updateViolation = useUpdateViolation();
-  const logAudit = useLogAudit();
-  
 
   const pendingViolations = allViolations.filter((v) => v.status === "pending" || v.status === "escalated");
 

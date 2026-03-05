@@ -189,6 +189,12 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Comparison */}
+      <ComparisonSection />
+
+      {/* Integrations */}
+      <IntegrationsPreview />
+
       {/* Security */}
       <section id="security" className="py-20 border-t border-border/50">
         <div className="max-w-4xl mx-auto px-6 text-center">
@@ -207,6 +213,9 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* Book Demo CTA */}
+      <BookDemoSection />
 
       {/* Footer */}
       <footer className="border-t border-border/50 py-8">

@@ -20,6 +20,7 @@ import Demo from "./pages/Demo";
 import SOC2Controls from "./pages/SOC2Controls";
 import DataExport from "./pages/DataExport";
 import AICopilot from "./pages/AICopilot";
+import Integrations from "./pages/Integrations";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import SecurityPage from "./pages/Security";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/export" element={<ProtectedRoute><DataExport /></ProtectedRoute>} />
               <Route path="/copilot" element={<ProtectedRoute><AICopilot /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
               <Route path="/activity" element={<ProtectedRoute><ActivityLog /></ProtectedRoute>} />
               {/* Public legal/info pages */}
               <Route path="/privacy" element={<Privacy />} />

@@ -1,6 +1,9 @@
 import { Shield, CheckCircle, BarChart3, Zap, ArrowRight, Lock, FileText, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import ComparisonSection from "@/components/landing/ComparisonSection";
+import BookDemoSection from "@/components/landing/BookDemoSection";
+import IntegrationsPreview from "@/components/landing/IntegrationsPreview";
 
 const features = [
   { icon: FileText, title: "Policy-to-Rules Engine", desc: "Upload compliance policies. AI extracts machine-readable rules automatically." },
@@ -186,6 +189,12 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Comparison */}
+      <ComparisonSection />
+
+      {/* Integrations */}
+      <IntegrationsPreview />
+
       {/* Security */}
       <section id="security" className="py-20 border-t border-border/50">
         <div className="max-w-4xl mx-auto px-6 text-center">
@@ -204,6 +213,9 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* Book Demo CTA */}
+      <BookDemoSection />
 
       {/* Footer */}
       <footer className="border-t border-border/50 py-8">

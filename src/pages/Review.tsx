@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import SeverityBadge from "@/components/SeverityBadge";
+import RemediationPanel from "@/components/RemediationPanel";
 import { useViolations, useUpdateViolation } from "@/hooks/useCompliance";
-
 
 import { CheckCircle, XCircle, ArrowUpCircle, MessageSquare, Loader2 } from "lucide-react";
 import { format } from "date-fns";
@@ -82,6 +82,9 @@ const Review = () => {
                     <span>Risk Score: <span className="font-semibold text-foreground">{v.risk_score || 0}</span></span>
                     <span>Detected: {format(new Date(v.detected_at), "MMM d, h:mm a")}</span>
                   </div>
+
+                  {/* AI Remediation */}
+                  <RemediationPanel violationId={v.id} />
                 </div>
 
                 {/* Action Buttons */}

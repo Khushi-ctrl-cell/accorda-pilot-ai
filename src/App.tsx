@@ -20,6 +20,7 @@ import Demo from "./pages/Demo";
 import SOC2Controls from "./pages/SOC2Controls";
 import DataExport from "./pages/DataExport";
 import AICopilot from "./pages/AICopilot";
+import Integrations from "./pages/Integrations";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import SecurityPage from "./pages/Security";

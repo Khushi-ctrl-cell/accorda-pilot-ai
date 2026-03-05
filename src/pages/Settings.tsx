@@ -36,7 +36,7 @@ const Settings = () => {
   }, [orgId]);
 
   const handleSave = async () => {
-    if (!orgId) return;
+    if (!orgId || !isAdmin) return;
     setSaving(true);
     try {
       const { data: existing } = await supabase

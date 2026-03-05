@@ -231,15 +231,25 @@ Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
     const content = aiData.choices?.[0]?.message?.content || "[]";
 
     let rules;
+    const VALID_SEVERITIES = ["critical", "high", "medium", "low", "info"];
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       rules = JSON.parse(cleaned);
     } catch {
-      console.error("Failed to parse AI response:", content);
-      rules = [];
+      console.error("Failed to parse AI response");
+      return new Response(JSON.stringify({ error: "AI output failed schema validation" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (!Array.isArray(rules)) rules = [rules];
+
+    // Validate extracted rules conform to expected structure
+    rules = rules.filter((r: any) =>
+      r && typeof r.description === "string" && r.description.length > 0 &&
+      typeof r.condition_text === "string" && r.condition_text.length > 0 &&
+      (!r.severity || VALID_SEVERITIES.includes(r.severity))
+    );
 
     const avgConfidence = rules.length > 0
       ? rules.reduce((sum: number, r: any) => sum + (r.confidence || 0.7), 0) / rules.length

@@ -717,13 +717,22 @@ export type Database = {
         Returns: string
       }
       get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      has_role:
+        | {
+            Args: {
+              _org_id: string
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
     }
     Enums: {
       app_role: "admin" | "compliance_officer" | "reviewer" | "auditor"

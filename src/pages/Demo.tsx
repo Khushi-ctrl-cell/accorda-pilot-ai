@@ -12,7 +12,9 @@ const Demo = () => {
     setLoading(true);
     try {
       // Request demo session from server-side edge function (no credentials in client code)
-      const { data, error } = await supabase.functions.invoke("create-demo-session");
+      const { data, error } = await supabase.functions.invoke("create-demo-session", {
+        headers: { "x-demo-token": import.meta.env.VITE_DEMO_ACCESS_SECRET || "" },
+      });
       if (error || !data?.access_token) {
         toast.error("Demo account not configured yet. Please sign up to try the platform.");
         navigate("/auth");

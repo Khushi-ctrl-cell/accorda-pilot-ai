@@ -82,6 +82,9 @@ const Review = () => {
                     <span>Risk Score: <span className="font-semibold text-foreground">{v.risk_score || 0}</span></span>
                     <span>Detected: {format(new Date(v.detected_at), "MMM d, h:mm a")}</span>
                   </div>
+
+                  {/* AI Remediation */}
+                  <RemediationPanel violationId={v.id} />
                 </div>
 
                 {/* Action Buttons */}

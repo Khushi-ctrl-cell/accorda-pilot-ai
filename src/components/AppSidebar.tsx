@@ -29,6 +29,7 @@ const navItems = [
   { to: "/soc2", icon: ShieldCheck, label: "SOC 2 Controls" },
   { to: "/copilot", icon: Sparkles, label: "AI Copilot" },
   { to: "/export", icon: Download, label: "Data Export" },
+  { to: "/integrations", icon: Puzzle, label: "Integrations" },
   { to: "/activity", icon: Activity, label: "Activity Log" },
 ];
 

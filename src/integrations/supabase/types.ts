@@ -324,6 +324,72 @@ export type Database = {
         }
         Relationships: []
       }
+      remediation_actions: {
+        Row: {
+          action_type: string
+          approved_at: string | null
+          approved_by: string | null
+          command: string | null
+          created_at: string
+          executed_at: string | null
+          executed_by: string | null
+          id: string
+          org_id: string
+          risk_reduction: number | null
+          status: string
+          suggested_action: string
+          updated_at: string
+          violation_id: string
+        }
+        Insert: {
+          action_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          command?: string | null
+          created_at?: string
+          executed_at?: string | null
+          executed_by?: string | null
+          id?: string
+          org_id: string
+          risk_reduction?: number | null
+          status?: string
+          suggested_action: string
+          updated_at?: string
+          violation_id: string
+        }
+        Update: {
+          action_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          command?: string | null
+          created_at?: string
+          executed_at?: string | null
+          executed_by?: string | null
+          id?: string
+          org_id?: string
+          risk_reduction?: number | null
+          status?: string
+          suggested_action?: string
+          updated_at?: string
+          violation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remediation_actions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remediation_actions_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "violations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rule_versions: {
         Row: {
           change_summary: string | null

@@ -21,7 +21,7 @@ const Demo = () => {
       // Set the session using the server-provided tokens
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: data.access_token,
-        refresh_token: data.refresh_token,
+        refresh_token: data.refresh_token || "",
       });
       if (sessionError) {
         toast.error("Demo unavailable. Please sign up for a free trial.");

@@ -43,8 +43,8 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Rate limit by IP (database-backed)
-    const clientIp = req.headers.get("x-forwarded-for") || "unknown";
+    // Use trusted server-side IP headers (CF-Connecting-IP for Cloudflare, fallback to x-real-ip)
+    const clientIp = req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     if (!(await checkRateLimit(supabase, clientIp, "create-demo-session"))) {
       return new Response(
         JSON.stringify({ error: "Too many demo requests. Please try again later." }),
@@ -79,7 +79,6 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
         expires_in: data.session.expires_in,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

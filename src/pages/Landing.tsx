@@ -1,6 +1,9 @@
 import { Shield, CheckCircle, BarChart3, Zap, ArrowRight, Lock, FileText, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import ComparisonSection from "@/components/landing/ComparisonSection";
+import BookDemoSection from "@/components/landing/BookDemoSection";
+import IntegrationsPreview from "@/components/landing/IntegrationsPreview";
 
 const features = [
   { icon: FileText, title: "Policy-to-Rules Engine", desc: "Upload compliance policies. AI extracts machine-readable rules automatically." },

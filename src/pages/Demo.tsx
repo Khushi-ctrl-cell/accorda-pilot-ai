@@ -11,13 +11,20 @@ const Demo = () => {
   const handleDemoLogin = async () => {
     setLoading(true);
     try {
-      // Sign in with a demo account
-      const { error } = await supabase.auth.signInWithPassword({
-        email: "demo@complianceai.app",
-        password: "demo-access-2026",
-      });
-      if (error) {
+      // Request demo session from server-side edge function (no credentials in client code)
+      const { data, error } = await supabase.functions.invoke("create-demo-session");
+      if (error || !data?.access_token) {
         toast.error("Demo account not configured yet. Please sign up to try the platform.");
+        navigate("/auth");
+        return;
+      }
+      // Set the session using the server-provided tokens
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+      if (sessionError) {
+        toast.error("Demo unavailable. Please sign up for a free trial.");
         navigate("/auth");
         return;
       }

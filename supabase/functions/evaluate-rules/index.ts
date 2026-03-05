@@ -76,7 +76,7 @@ function evaluateCondition(condition: ConditionDSL, record: Record<string, any>)
 
   return {
     passed,
-    details: `${field} ${operator} ${value}: actual=${recordValue} → ${passed ? "VIOLATION" : "COMPLIANT"}`,
+    details: `${field} ${operator} ${value}: result=${passed ? "VIOLATION" : "COMPLIANT"}`,
   };
 }
 

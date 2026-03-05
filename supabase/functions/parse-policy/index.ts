@@ -218,7 +218,7 @@ Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
       }, 3, 1000);
     } catch (err) {
       retryCount = 3;
-      await logError(supabase, org_id, "parse-policy", (err as Error).message, { stack: String(err) }, body, retryCount);
+      await logError(supabase, org_id, "parse-policy", (err as Error).message, { error_class: (err as Error).name || "UnknownError" }, body, retryCount);
       throw err;
     }
 

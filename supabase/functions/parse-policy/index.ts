@@ -200,7 +200,7 @@ Return ONLY a JSON array of rule objects. No markdown, no explanation.`;
           model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: `Extract compliance rules from this policy document titled "${policy_name}":\n\n${policy_text}` },
+            { role: "user", content: `Extract compliance rules from the following policy document.\n\n<policy_name>${policy_name.replace(/[<>]/g, '')}</policy_name>\n\n<policy_text>\n${policy_text.replace(/[<>]/g, '')}\n</policy_text>` },
           ],
         }),
       }, 3, 1000);

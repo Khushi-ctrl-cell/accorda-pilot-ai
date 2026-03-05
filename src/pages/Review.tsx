@@ -12,6 +12,7 @@ const Review = () => {
   const { data: allViolations = [], isLoading } = useViolations();
   const updateViolation = useUpdateViolation();
   const logAudit = useLogAudit();
+  const { user } = useAuth();
 
   const pendingViolations = allViolations.filter((v) => v.status === "pending" || v.status === "escalated");
 

@@ -39,23 +39,11 @@ serve(async (req) => {
   }
 
   try {
-    // Verify demo access token to prevent casual abuse
-    const demoSecret = Deno.env.get("DEMO_ACCESS_SECRET");
-    if (demoSecret) {
-      const clientToken = req.headers.get("x-demo-token");
-      if (clientToken !== demoSecret) {
-        return new Response(
-          JSON.stringify({ error: "Invalid demo access token." }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Use only trusted server-set IP header; reject spoofable fallbacks
+    // Rate limit by IP
     const clientIp = req.headers.get("cf-connecting-ip") || "unknown";
     if (!(await checkRateLimit(supabase, clientIp, "create-demo-session"))) {
       return new Response(

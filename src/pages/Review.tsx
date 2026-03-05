@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import SeverityBadge from "@/components/SeverityBadge";
 import { useViolations, useUpdateViolation } from "@/hooks/useCompliance";
-import { useLogAudit } from "@/hooks/useAuditLog";
+
 
 import { CheckCircle, XCircle, ArrowUpCircle, MessageSquare, Loader2 } from "lucide-react";
 import { format } from "date-fns";
@@ -11,8 +11,6 @@ import { toast } from "sonner";
 const Review = () => {
   const { data: allViolations = [], isLoading } = useViolations();
   const updateViolation = useUpdateViolation();
-  const logAudit = useLogAudit();
-  
 
   const pendingViolations = allViolations.filter((v) => v.status === "pending" || v.status === "escalated");
 
@@ -29,16 +27,6 @@ const Review = () => {
       await updateViolation.mutateAsync({
         id,
         status: statusMap[action] || "reviewed",
-      });
-
-      // Log to audit trail
-      logAudit.mutate({
-        action: `violation.${action}`,
-        entity_type: "violation",
-        entity_id: id,
-        before_value: { status: violation?.status },
-        after_value: { status: statusMap[action] },
-        metadata: { rule_name: violation?.rule_name, record_id: violation?.record_id },
       });
 
       toast.success(`Violation marked as ${action}`);

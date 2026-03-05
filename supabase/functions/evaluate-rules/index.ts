@@ -221,6 +221,12 @@ serve(async (req) => {
         if (result.passed) {
           const riskScore = calculateRiskScore(rule.severity, [result]);
 
+          // Only store fields referenced in the rule condition, not the full record
+          const relevantFields = collectConditionFields(conditionDsl);
+          const safeRecord = Object.fromEntries(
+            Object.entries(record).filter(([k]) => relevantFields.has(k) || k === "id" || k === "_id" || k === "_table")
+          );
+
           const { data: violation, error: vError } = await supabase.from("violations").insert({
             rule_id: rule.id,
             rule_code: rule.rule_code,
@@ -231,7 +237,7 @@ serve(async (req) => {
             condition_breakdown: {
               rule_condition: rule.condition_text,
               evaluation: result.details,
-              record_values: record,
+              record_fields: safeRecord,
             },
             severity: rule.severity,
             status: "pending",

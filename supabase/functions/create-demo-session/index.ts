@@ -6,19 +6,29 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Rate limit demo session creation
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW = 60000;
+// Database-backed rate limiter (persistent across cold starts)
+const RATE_LIMIT_WINDOW_MS = 60000;
 const MAX_REQUESTS = 5;
 
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  if (entry && entry.resetAt > now) {
-    if (entry.count >= MAX_REQUESTS) return false;
-    entry.count++;
+async function checkRateLimit(supabase: any, identifier: string, functionName: string): Promise<boolean> {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS);
+
+  const { data } = await supabase
+    .from("rate_limits")
+    .select("request_count, window_start")
+    .eq("user_id", identifier)
+    .eq("function_name", functionName)
+    .single();
+
+  if (data && new Date(data.window_start) > windowStart) {
+    if (data.request_count >= MAX_REQUESTS) return false;
+    await supabase.from("rate_limits")
+      .update({ request_count: data.request_count + 1 })
+      .eq("user_id", identifier).eq("function_name", functionName);
   } else {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    await supabase.from("rate_limits")
+      .upsert({ user_id: identifier, function_name: functionName, request_count: 1, window_start: now.toISOString() }, { onConflict: "user_id,function_name" });
   }
   return true;
 }

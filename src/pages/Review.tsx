@@ -29,7 +29,6 @@ const Review = () => {
       await updateViolation.mutateAsync({
         id,
         status: statusMap[action] || "reviewed",
-        reviewed_by: user?.email || user?.id || "unknown",
       });
 
       // Log to audit trail

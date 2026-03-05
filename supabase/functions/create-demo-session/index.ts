@@ -39,9 +39,13 @@ serve(async (req) => {
   }
 
   try {
-    // Rate limit by IP
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Rate limit by IP (database-backed)
     const clientIp = req.headers.get("x-forwarded-for") || "unknown";
-    if (!checkRateLimit(clientIp)) {
+    if (!(await checkRateLimit(supabase, clientIp, "create-demo-session"))) {
       return new Response(
         JSON.stringify({ error: "Too many demo requests. Please try again later." }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -52,6 +52,7 @@ const App = () => (
               <Route path="/export" element={<ProtectedRoute><DataExport /></ProtectedRoute>} />
               <Route path="/copilot" element={<ProtectedRoute><AICopilot /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
               <Route path="/activity" element={<ProtectedRoute><ActivityLog /></ProtectedRoute>} />
               {/* Public legal/info pages */}
               <Route path="/privacy" element={<Privacy />} />

@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import AnimatedCounter from "./command-center/AnimatedCounter";
 
 interface StatCardProps {
   title: string;
@@ -10,11 +11,18 @@ interface StatCardProps {
   variant?: "default" | "success" | "warning" | "critical";
 }
 
-const variantStyles = {
-  default: "stat-glow",
+const variantBorders = {
+  default: "border-primary/15",
   success: "border-compliant/20",
   warning: "border-warning/20",
   critical: "border-critical/20",
+};
+
+const variantGlows = {
+  default: "hover:shadow-[0_0_20px_hsl(var(--primary)/0.1)]",
+  success: "hover:shadow-[0_0_20px_hsl(var(--compliant)/0.1)]",
+  warning: "hover:shadow-[0_0_20px_hsl(var(--warning)/0.1)]",
+  critical: "hover:shadow-[0_0_20px_hsl(var(--critical)/0.1)]",
 };
 
 const iconVariants = {
@@ -25,20 +33,29 @@ const iconVariants = {
 };
 
 const StatCard = ({ title, value, subtitle, icon, trend, variant = "default" }: StatCardProps) => {
+  const numValue = typeof value === "number" ? value : parseInt(value, 10);
+  const isNum = !isNaN(numValue);
+
   return (
-    <div className={cn("glass-card rounded-xl p-5 transition-all hover:shadow-md", variantStyles[variant])}>
+    <div className={cn(
+      "glass-panel rounded-xl p-4 transition-all hover-tilt",
+      variantBorders[variant],
+      variantGlows[variant],
+    )}>
       <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}</p>
-          <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
-          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{title}</p>
+          <p className="text-2xl font-display font-bold tracking-tight text-foreground">
+            {isNum ? <AnimatedCounter value={numValue} /> : value}
+          </p>
+          {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
           {trend && (
-            <p className={cn("text-xs font-medium", trend.positive ? "text-compliant" : "text-critical")}>
-              {trend.positive ? "↑" : "↓"} {Math.abs(trend.value)}% from last week
+            <p className={cn("text-[10px] font-medium", trend.positive ? "text-compliant" : "text-critical")}>
+              {trend.positive ? "↑" : "↓"} {Math.abs(trend.value)}%
             </p>
           )}
         </div>
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", iconVariants[variant])}>
+        <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", iconVariants[variant])}>
           {icon}
         </div>
       </div>

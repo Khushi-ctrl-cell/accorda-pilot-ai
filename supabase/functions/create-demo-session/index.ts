@@ -11,26 +11,44 @@ const RATE_LIMIT_WINDOW_MS = 60000;
 const MAX_REQUESTS = 5;
 
 async function checkRateLimit(supabase: any, identifier: string, functionName: string): Promise<boolean> {
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS);
+  try {
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS);
 
-  const { data } = await supabase
-    .from("rate_limits")
-    .select("request_count, window_start")
-    .eq("user_id", identifier)
-    .eq("function_name", functionName)
-    .single();
+    const { data, error: selectError } = await supabase
+      .from("rate_limits")
+      .select("request_count, window_start")
+      .eq("user_id", identifier)
+      .eq("function_name", functionName)
+      .single();
 
-  if (data && new Date(data.window_start) > windowStart) {
-    if (data.request_count >= MAX_REQUESTS) return false;
-    await supabase.from("rate_limits")
-      .update({ request_count: data.request_count + 1 })
-      .eq("user_id", identifier).eq("function_name", functionName);
-  } else {
-    await supabase.from("rate_limits")
-      .upsert({ user_id: identifier, function_name: functionName, request_count: 1, window_start: now.toISOString() }, { onConflict: "user_id,function_name" });
+    if (selectError && selectError.code !== "PGRST116") {
+      console.error("Rate limit select error:", selectError.message);
+      return false; // fail-closed
+    }
+
+    if (data && new Date(data.window_start) > windowStart) {
+      if (data.request_count >= MAX_REQUESTS) return false;
+      const { error: updateError } = await supabase.from("rate_limits")
+        .update({ request_count: data.request_count + 1 })
+        .eq("user_id", identifier).eq("function_name", functionName);
+      if (updateError) {
+        console.error("Rate limit update error:", updateError.message);
+        return false;
+      }
+    } else {
+      const { error: upsertError } = await supabase.from("rate_limits")
+        .upsert({ user_id: identifier, function_name: functionName, request_count: 1, window_start: now.toISOString() }, { onConflict: "user_id,function_name" });
+      if (upsertError) {
+        console.error("Rate limit upsert error:", upsertError.message);
+        return false;
+      }
+    }
+    return true;
+  } catch (err) {
+    console.error("Rate limit unexpected error:", err);
+    return false; // fail-closed on any unexpected error
   }
-  return true;
 }
 
 serve(async (req) => {

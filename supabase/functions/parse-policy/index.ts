@@ -177,6 +177,20 @@ serve(async (req) => {
       });
     }
 
+    // Verify user has admin or compliance_officer role (Officers+ only)
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("org_id", org_id)
+      .in("role", ["admin", "compliance_officer"])
+      .limit(1);
+    if (!roleData || roleData.length === 0) {
+      return new Response(JSON.stringify({ error: "Insufficient permissions. Only admins and compliance officers can parse policies." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { Shield, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";

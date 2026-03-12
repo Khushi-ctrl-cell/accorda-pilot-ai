@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import { Shield, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+
+const isLovableDomain = () => {
+  const host = window.location.hostname;
+  return host.includes("lovable.app") || host.includes("lovableproject.com");
+};
 
 const Auth = () => {
   const { user, loading: authLoading } = useAuth();
@@ -52,9 +58,14 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const isCustomDomain = !window.location.hostname.includes("lovable.app");
-
-      if (isCustomDomain) {
+      if (isLovableDomain()) {
+        // Use Lovable managed OAuth on lovable.app domains
+        const result = await lovable.auth.signInWithOAuth("google", {
+          redirect_uri: window.location.origin,
+        });
+        if (result?.error) throw result.error;
+      } else {
+        // Use direct Supabase OAuth on custom domains (Vercel, etc.)
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
@@ -66,14 +77,6 @@ const Auth = () => {
         if (data?.url) {
           window.location.href = data.url;
         }
-      } else {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
       }
     } catch (err: any) {
       toast.error(err.message || "Google sign-in failed");

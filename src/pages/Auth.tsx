@@ -52,25 +52,18 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      if (isLovableDomain()) {
-        // Use Lovable managed OAuth on lovable.app domains
-        const result = await lovable.auth.signInWithOAuth("google", {
-          redirect_uri: window.location.origin,
-        });
-        if (result?.error) throw result.error;
-      } else {
-        // Use direct Supabase OAuth on custom domains (Vercel, etc.)
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: window.location.origin,
-            skipBrowserRedirect: true,
-          },
-        });
-        if (error) throw error;
-        if (data?.url) {
-          window.location.href = data.url;
-        }
+      // Always use direct Supabase OAuth — redirects to
+      // https://ipkxucaltygkjtiweeoy.supabase.co/auth/v1/authorize?provider=google
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin,
+          skipBrowserRedirect: true,
+        },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
       }
     } catch (err: any) {
       toast.error(err.message || "Google sign-in failed");
